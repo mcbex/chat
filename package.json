@@ -1,0 +1,28 @@
+{
+  "name": "chat",
+  "version": "0.0.0",
+  "description": "a basic chat server using socket.io",
+  "main": "chat.js",
+  "dependencies": {
+    "socket.io": "~0.9.16"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node run.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcbex/chat.git"
+  },
+  "keywords": [
+    "nodejs",
+    "websockets",
+    "socket.io",
+    "chat"
+  ],
+  "author": "Ming Beckwith",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "04a353af382f40ecdc468ccc289d80e0808e8b24"
+}

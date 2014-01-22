@@ -7,7 +7,14 @@ function createServer() {
         url = require('url');
 
     server = http.createServer(function(request, response) {
-        var route = url.parse(request.url).pathname;
+        var route = url.parse(request.url).pathname,
+            filetypes = {
+                html: 'text/html',
+                js: 'application/javascript',
+                css: 'text/css'
+            }, ext;
+
+        // TODO write a proper router and handle static files better
 
         if (route == '/') {
             fs.readFile('./index.html', function(err, data) {
@@ -23,8 +30,11 @@ function createServer() {
                 response.write(data);
                 response.end();
             });
-        } else if (route == '/chat.js') {
-            fs.readFile('./chat.js', function(err, data) {
+        } else if (/\./.test(route)) {
+            ext = route.split('.');
+            ext = ext[ext.length - 1];
+
+            fs.readFile('.' + route, function(err, data) {
                 if (err) {
                     response.writeHead(500);
                     response.write('Internal server error');
@@ -32,7 +42,7 @@ function createServer() {
                 }
 
                 response.writeHead(200, {
-                    'Content-type': 'application/javascript'
+                    'Content-type': filetypes[ext]
                 });
                 response.write(data);
                 response.end();

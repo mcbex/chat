@@ -8,4 +8,8 @@ describe('a spec for the chat client', function() {
         expect(elem.getAttribute('id')).toEqual(id);
     });
 
+    it('is designed to fail', function() {
+        expect(false).toEqual(true);
+    });
+
 });

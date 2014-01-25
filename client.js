@@ -1,4 +1,6 @@
 window.onload = function() {
+    // onloads need to be separate from the test runner
+    // since jasmine boot depends on the load event
     var input = document.getElementById('chatter'),
         button = document.getElementsByTagName('button')[0],
         client = new Chatter('user');

@@ -19,8 +19,8 @@ describe('a spec for the chat client', function() {
         expect(chatter.output.nodeName).toEqual('DIV');
     });
 
-//    it('is designed to fail', function() {
-//        expect(false).toEqual(true);
-//    });
+    it('is designed to fail', function() {
+        expect(false).toEqual(true);
+    });
 
 });

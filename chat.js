@@ -148,10 +148,10 @@ Chatter.prototype.setName = function() {
     }
 };
 
-Chatter.prototype.init = function() {
+Chatter.prototype.init = function(socket) {
     var self = this;
 
-    this.socket = io.connect('http://localhost:9999');
+    this.socket = socket;
 
     this.socket.on('error', function(data) {
         window.alert(data.message);

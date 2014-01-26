@@ -13,5 +13,5 @@ window.onload = function() {
         client.submit();
     });
 
-    client.init();
+    client.init(io.connect('http://localhost:999');
 }

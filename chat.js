@@ -4,10 +4,28 @@ var Chatter = function(id) {
     this.output = this.client.getElementsByTagName('div')[0];
 };
 
+// TODO what data types should status be able to accept?
+Chatter.prototype.setStatus = function(status) {
+    if (!status) {
+        this.clearStatus();
+        return;
+    }
+
+    this.status.textContent = status;
+};
+
+Chatter.prototype.clearStatus = function() {
+    this.status.textContent = '';
+};
+
+Chatter.prototype.hasFriends = function() {
+    return this.availableFriends && this.availableFriends.length;
+};
+
 Chatter.prototype.submit = function(inputType, inputValue) {
     var elem;
 
-    this.socket.emit('submit', { 
+    this.socket.emit('submit', {
         message: this.value
     });
 
@@ -26,47 +44,50 @@ Chatter.prototype.typing = function() {
     }
 };
 
+Chatter.prototype.chatsWith = function(friend) {
+    var self = this;
+
+    this.socket.emit('start-chat', {
+        friendId: friend
+    });
+};
+
 Chatter.prototype._listenToChats = function() {
     var self = this,
         elem;
 
     this.socket.on('chat-started', function(data) {
-        self.status.textContent = 'Chatting with ' + data.name;
+        self.setStatus('Chatting with ' + data.name);
         self.friend = data;
     });
 
+    // TODO need to allow for multiple friends and chats
     this.socket.on('chat-ended', function() {
         document.getElementById('friends').innerHTML = '';
-        self.status.textContent = 'no friends online';
+        self.setStatus('no friends online');
         delete self.friend;
     });
 
     this.socket.on('chat-input', function(data) {
-        self.status.textContent = data;
+        self.setStatus(data);
     });
 
     this.socket.on('chat-deleted', function() {
-        self.status.textContent = '';
+        self.clearStatus();
     });
 
     this.socket.on('chat-recieved', function(data) {
         elem = document.createElement('p');
         elem.textContent = data.user + ': ' + data.message;
         self.output.appendChild(elem);
-        self.status.textContent = 'Chatting with ' + data.user;
+        // TODO need to also set the current friend or support multiple chats
+        self.setStatus('Chatting with ' + data.user);
     });
 
+    // TODO dont delete all the friends when one disconnects
     this.socket.on('friend-disconnected', function(data) {
         document.getElementById('friends').innerHTML = '';
-        self.status.textContent = 'no friends online';
-    });
-};
-
-Chatter.prototype.chatsWith = function(friend) {
-    var self = this;
-
-    this.socket.emit('start-chat', {
-        friendId: friend
+        self.setStatus('no friends online');
     });
 };
 
@@ -91,41 +112,54 @@ Chatter.prototype._makeButton = function(data) {
     button.setAttribute('id', data.id);
     button.setAttribute('data-name', data.name);
     button.textContent = 'Chat with ' + data.name;
+    // TODO make button end chat on click again
     button.addEventListener('click', function() {
         self.chatsWith(button.id);
-        self.status.textContent = 'Chatting with ' + button['data-name'];
+        self.setStatus('Chatting with ' + button['data-name']);
     });
 
     return button;
+};
 
+Chatter.prototype._addFriends = function(data) {
+    var wrapper, button;
+
+    wrapper = this._makeFriendsContainer();
+    this.availableFriends = [];
+
+    for (var i = 0, l = data.length; i < l; i++) {
+
+        if (data[i].name != this.username) {
+            button = this._makeButton(data[i]);
+            wrapper.appendChild(button);
+            this.availableFriends.push(data[i]);
+        }
+    }
+};
+
+Chatter.prototype._makeStatusContainer = function() {
+    var status = document.createElement('p');
+
+    status.setAttribute('id', 'status');
+    this.status = status;
+    this.client.appendChild(status);
 };
 
 Chatter.prototype.getFriends = function() {
-    var self = this,
-        wrapper, status, button;
+    var self = this;
 
     self.socket.on('friends', function(data) {
-        wrapper = self._makeFriendsContainer();
-
-        for (var i = 0, l = data.length; i < l; i++) {
-
-            if (data[i].name != self.username) {
-                button = self._makeButton(data[i]);
-                wrapper.appendChild(button);
-            }
-        }
+        self._addFriends(data);
 
         if (!self.status) {
-            status = document.createElement('p');
-            status.setAttribute('id', 'status');
-            self.status = status;
-            self.client.appendChild(status);
+            self._makeStatusContainer();
         }
 
-        if (!button) {
-           self.status.textContent = 'no friends online';
+        if (!self.hasFriends()) {
+           self.setStatus('no friends online');
         } else {
-            self.status.textContent = '';
+            // TODO don't clear the status if its not set to the default
+            self.clearStatus();
         }
     });
 
@@ -135,6 +169,7 @@ Chatter.prototype.getFriends = function() {
 Chatter.prototype.setName = function() {
     var self = this;
 
+    // TODO better ui for setting the name
     this.username = window.prompt('Enter a username');
 
     if (this.username) {
@@ -153,6 +188,7 @@ Chatter.prototype.init = function(socket) {
 
     this.socket = socket;
 
+    // TODO nicer error handling
     this.socket.on('error', function(data) {
         window.alert(data.message);
     });

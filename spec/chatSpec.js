@@ -1,4 +1,4 @@
-describe('dom specs', function() {
+describe('chatter constructor specs', function() {
 
     var id, chatter;
 
@@ -23,11 +23,10 @@ describe('dom specs', function() {
 
 describe('socket.io specs', function() {
 
-    var id, chatter, spy;
+    var chatter, socket;
 
     beforeEach(function() {
-        id = 'user';
-        chatter = new Chatter(id);
+        chatter = new Chatter('user');
         socket = {
             on: function(event, callback) {
                 if (!this.events) {
@@ -50,35 +49,133 @@ describe('socket.io specs', function() {
         chatter.init(socket);
     });
 
-    it('sets the socket', function() {
-        expect(chatter.socket = socket);
+    describe('initial setup', function() {
+
+        it('sets the socket property', function() {
+            expect(chatter.socket = socket);
+        });
+
+        it('triggers the error and connected events', function() {
+            var alertCallback;
+
+            window.alert = function(message) { alertCallback = message; };
+            spyOn(chatter, 'setName')
+
+            socket.trigger('error', { message: 'testing' });
+            socket.trigger('connected');
+
+            expect(alertCallback).toEqual('testing');
+            expect(chatter.setName.calls.length).toEqual(1);
+            expect(socket.on.calls.length).toEqual(2);
+        });
+
+        it('sets the username property', function() {
+            window.prompt = function() { return 'bob' };
+            spyOn(chatter, 'getFriends');
+
+            chatter.setName();
+            socket.trigger('name-set');
+
+            expect(chatter.username).toEqual('bob');
+            expect(chatter.getFriends.calls.length).toEqual(1);
+            expect(chatter.client.getAttribute('data-username')).toEqual('bob');
+            expect(chatter.output.textContent).toEqual('Hello bob');
+        });
+
+        it('gets friends and dispatches methods to set up the ui', function() {
+            spyOn(chatter, '_addFriends');
+            spyOn(chatter, '_makeStatusContainer');
+            spyOn(chatter, 'setStatus');
+            spyOn(chatter, 'clearStatus');
+
+            chatter.getFriends();
+
+            chatter.hasFriends = function() { return false; };
+            socket.trigger('friends', [
+                { id: 123, name: 'bob' },
+                { id: 345, name: 'jane' }
+            ]);
+            chatter.status = true;
+
+            chatter.hasFriends = function() { return true; };
+            socket.trigger('friends', [
+                { id: 123, name: 'bob' },
+                { id: 345, name: 'jane' }
+            ]);
+
+            expect(chatter._addFriends.calls.length).toEqual(2);
+            expect(chatter._makeStatusContainer.calls.length).toEqual(1);
+            expect(chatter.setStatus.calls.length).toEqual(1);
+            expect(chatter.clearStatus.calls.length).toEqual(1);
+        });
     });
 
-    it('triggers the error and connected events', function() {
-        var alertCallback;
+    describe('chat events', function() {
 
-        window.alert = function(message) { alertCallback = message; };
-        spyOn(chatter, 'setName');
+        beforeEach(function() {
+            chatter.status = document.createElement('p');
+            chatter._listenToChats();
+        });
 
-        socket.trigger('error', { message: 'testing' });
-        socket.trigger('connected');
+        it('listens for chat-started and sets the friend', function() {
+            socket.trigger('chat-started', { id: 123, name: 'bob' });
 
-        expect(alertCallback).toEqual('testing');
-        expect(chatter.setName.calls.length).toEqual(1);
-        expect(socket.on.calls.length).toEqual(2);
+            expect(chatter.status.textContent).toEqual('Chatting with bob');
+            expect(chatter.friend).toEqual({ id: 123, name: 'bob' });
+        });
+
+        it('listens for chat-ended and unsets the friend', function() {
+
+        });
+    });
+});
+
+describe('status utilities specs', function() {
+
+    var chatter;
+
+    beforeEach(function() {
+        chatter = new Chatter('user');
+        chatter.status = document.createElement('p');
     });
 
-    it('sets a username', function() {
-        window.prompt = function() { return 'bob' };
-        spyOn(chatter, 'getFriends');
+    it('sets the textcontent of the status element', function() {
+        chatter.setStatus('test');
+        expect(chatter.status.textContent).toEqual('test');
 
-        chatter.setName();
-        socket.trigger('name-set');
+        chatter.setStatus('retest');
+        expect(chatter.status.textContent).toEqual('retest');
 
-        expect(chatter.username).toEqual('bob');
-        expect(chatter.getFriends.calls.length).toEqual(1);
-        expect(chatter.client.getAttribute('data-username')).toEqual('bob');
-        expect(chatter.output.textContent).toEqual('Hello bob');
+        chatter.setStatus('false');
+        expect(chatter.status.textContent).toEqual('false');
+    });
+
+    it('clears the textcontent of the status element', function() {
+        chatter.clearStatus();
+        expect(chatter.status.textContent).toEqual('');
+
+        chatter.setStatus('test');
+        chatter.clearStatus();
+        expect(chatter.status.textContent).toEqual('');
+    });
+
+    it('calls clearStatus if setStatus is passed a falsy value', function() {
+        spyOn(chatter, 'clearStatus').andCallThrough();
+
+        chatter.setStatus('test');
+        chatter.setStatus(false);
+        expect(chatter.status.textContent).toEqual('');
+
+        chatter.setStatus(null);
+        expect(chatter.status.textContent).toEqual('');
+
+        chatter.setStatus(undefined);
+        expect(chatter.status.textContent).toEqual('');
+
+        chatter.setStatus();
+        expect(chatter.status.textContent).toEqual('');
+
+        expect(chatter.clearStatus.calls.length).toEqual(4);
     });
 
 });
